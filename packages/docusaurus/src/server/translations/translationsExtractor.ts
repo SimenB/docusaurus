@@ -10,9 +10,12 @@ import generate from '@babel/generator';
 import chalk from 'chalk';
 import {parse, types as t, NodePath, TransformOptions} from '@babel/core';
 import {flatten} from 'lodash';
-import {TranslationFileContent, TranslationMessage} from '@docusaurus/types';
+import {
+  InitializedPlugin,
+  TranslationFileContent,
+  TranslationMessage,
+} from '@docusaurus/types';
 import nodePath from 'path';
-import {InitPlugin} from '../plugins/init';
 import {SRC_DIR_NAME} from '../../constants';
 import {safeGlobby} from '../utils';
 
@@ -35,7 +38,7 @@ function getSiteSourceCodeFilePaths(siteDir: string): string[] {
   return [nodePath.join(siteDir, SRC_DIR_NAME)];
 }
 
-function getPluginSourceCodeFilePaths(plugin: InitPlugin): string[] {
+function getPluginSourceCodeFilePaths(plugin: InitializedPlugin): string[] {
   // The getPathsToWatch() generally returns the js/jsx/ts/tsx/md/mdx file paths
   // We can use this method as well to know which folders we should try to extract translations from
   // Hacky/implicit, but do we want to introduce a new lifecycle method just for that???
@@ -59,7 +62,7 @@ export async function globSourceCodeFilePaths(
 
 async function getSourceCodeFilePaths(
   siteDir: string,
-  plugins: InitPlugin[],
+  plugins: InitializedPlugin[],
 ): Promise<string[]> {
   const sitePaths = getSiteSourceCodeFilePaths(siteDir);
 
@@ -75,7 +78,7 @@ async function getSourceCodeFilePaths(
 
 export async function extractSiteSourceCodeTranslations(
   siteDir: string,
-  plugins: InitPlugin[],
+  plugins: InitializedPlugin[],
   babelOptions: TransformOptions,
 ): Promise<TranslationFileContent> {
   // Should we warn here if the same translation "key" is found in multiple source code files?
@@ -167,7 +170,7 @@ function extractSourceCodeAstTranslations(
   sourceCodeFilePath: string,
 ): SourceCodeFileTranslations {
   function staticTranslateJSXWarningPart() {
-    return 'Translate content could not be extracted.\nIt has to be a static string, like <Translate>text</Translate>.';
+    return 'Translate content could not be extracted.\nIt has to be a static string and use optional but static props, like <Translate id="my-id" description="my-description">text</Translate>.';
   }
   function sourceFileWarningPart(node: Node) {
     return `File=${sourceCodeFilePath} at line=${node.loc?.start.line}`;
@@ -268,7 +271,7 @@ function extractSourceCodeAstTranslations(
         };
       } else {
         warnings.push(
-          `${staticTranslateJSXWarningPart}\n${sourceFileWarningPart(
+          `${staticTranslateJSXWarningPart()}\n${sourceFileWarningPart(
             path.node,
           )}\n${generateCode(path.node)}`,
         );

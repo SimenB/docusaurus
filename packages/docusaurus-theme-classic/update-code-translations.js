@@ -9,7 +9,7 @@ const chalk = require('chalk');
 const path = require('path');
 const fs = require('fs-extra');
 const globby = require('globby');
-const {mapValues, pickBy, difference} = require('lodash');
+const {mapValues, pickBy, difference, orderBy} = require('lodash');
 
 const CodeDirPaths = [
   path.join(__dirname, 'lib-next'),
@@ -21,9 +21,16 @@ const CodeDirPaths = [
 
 console.log('Will scan folders for code translations:', CodeDirPaths);
 
+function removeDescriptionSuffix(key) {
+  if (key.replace('___DESCRIPTION')) {
+    return key.replace('___DESCRIPTION', '');
+  }
+  return key;
+}
+
 function sortObjectKeys(obj) {
-  const keys = Object.keys(obj);
-  keys.sort();
+  let keys = Object.keys(obj);
+  keys = orderBy(keys, [(k) => removeDescriptionSuffix(k)]);
   return keys.reduce((acc, key) => {
     acc[key] = obj[key];
     return acc;
@@ -46,6 +53,7 @@ async function extractThemeCodeMessages() {
   const {
     globSourceCodeFilePaths,
     extractAllSourceCodeFileTranslations,
+    // eslint-disable-next-line global-require
   } = require('@docusaurus/core/lib/server/translations/translationsExtractor');
 
   const filePaths = (
@@ -61,7 +69,12 @@ async function extractThemeCodeMessages() {
 
   filesExtractedTranslations.forEach((fileExtractedTranslations) => {
     fileExtractedTranslations.warnings.forEach((warning) => {
-      console.warn(chalk.yellow(warning));
+      throw new Error(`
+Please make sure all theme translations are static!
+Some warnings were found!
+
+${warning}
+      `);
     });
   });
 
@@ -136,10 +149,12 @@ ${logKeys(unknownMessages)}`),
 
   const newBaseMessagesDescriptions = Object.entries(newBaseMessages).reduce(
     (acc, [key]) => {
+      const codeTranslation = codeExtractedTranslations[key];
       return {
         ...acc,
-        [`${key}${DescriptionSuffix}`]: codeExtractedTranslations[key]
-          .description,
+        [`${key}${DescriptionSuffix}`]: codeTranslation
+          ? codeTranslation.description
+          : undefined,
       };
     },
     {},
@@ -205,18 +220,23 @@ async function updateCodeTranslations() {
   }
 }
 
-updateCodeTranslations().then(
-  () => {
-    console.log('');
-    console.log(chalk.green('updateCodeTranslations end'));
-    console.log('');
-  },
-  (e) => {
-    console.log('');
-    console.error(chalk.red(`updateCodeTranslations failure: ${e.message}`));
-    console.log('');
-    console.error(e.stack);
-    console.log('');
-    process.exit(1);
-  },
-);
+function run() {
+  updateCodeTranslations().then(
+    () => {
+      console.log('');
+      console.log(chalk.green('updateCodeTranslations end'));
+      console.log('');
+    },
+    (e) => {
+      console.log('');
+      console.error(chalk.red(`updateCodeTranslations failure: ${e.message}`));
+      console.log('');
+      console.error(e.stack);
+      console.log('');
+      process.exit(1);
+    },
+  );
+}
+
+exports.run = run;
+exports.extractThemeCodeMessages = extractThemeCodeMessages;

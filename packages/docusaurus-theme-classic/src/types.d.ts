@@ -27,10 +27,15 @@ declare module '@theme/BlogListPaginator' {
 }
 
 declare module '@theme/BlogPostItem' {
-  import type {FrontMatter, Metadata} from '@theme/BlogPostPage';
+  import type {
+    FrontMatter,
+    FrontMatterAssets,
+    Metadata,
+  } from '@theme/BlogPostPage';
 
   export type Props = {
     readonly frontMatter: FrontMatter;
+    readonly frontMatterAssets: FrontMatterAssets;
     readonly metadata: Metadata;
     readonly truncated?: string | boolean;
     readonly isBlogPostPage?: boolean;
@@ -50,11 +55,28 @@ declare module '@theme/BlogPostPaginator' {
   export default BlogPostPaginator;
 }
 
+declare module '@theme/BlogLayout' {
+  import type {Props as LayoutProps} from '@theme/Layout';
+  import type {BlogSidebar} from '@theme/BlogSidebar';
+  import type {TOCItem} from '@docusaurus/types';
+
+  export type Props = LayoutProps & {
+    readonly sidebar?: BlogSidebar;
+    readonly toc?: readonly TOCItem[];
+  };
+
+  const BlogLayout: (props: Props) => JSX.Element;
+  export default BlogLayout;
+}
+
 declare module '@theme/CodeBlock' {
+  import {ReactElement} from 'react';
+
   export type Props = {
-    readonly children: string;
+    readonly children: string | ReactElement;
     readonly className?: string;
     readonly metastring?: string;
+    readonly title?: string;
   };
 
   const CodeBlock: (props: Props) => JSX.Element;
@@ -78,13 +100,33 @@ declare module '@theme/DocSidebar' {
   export type Props = {
     readonly path: string;
     readonly sidebar: readonly PropSidebarItem[];
-    readonly sidebarCollapsible?: boolean;
     readonly onCollapse: () => void;
     readonly isHidden: boolean;
   };
 
   const DocSidebar: (props: Props) => JSX.Element;
   export default DocSidebar;
+}
+
+declare module '@theme/DocSidebarItem' {
+  import type {PropSidebarItem} from '@docusaurus/plugin-content-docs-types';
+
+  type DocSidebarPropsBase = {
+    readonly activePath: string;
+    readonly onItemClick?: () => void;
+    readonly tabIndex?: number;
+  };
+
+  export type Props = DocSidebarPropsBase & {
+    readonly item: PropSidebarItem;
+  };
+  const DocSidebarItem: (props: Props) => JSX.Element;
+  export default DocSidebarItem;
+
+  export type DocSidebarItemsProps = DocSidebarPropsBase & {
+    readonly items: readonly PropSidebarItem[];
+  };
+  export const DocSidebarItems: (props: DocSidebarItemsProps) => JSX.Element;
 }
 
 declare module '@theme/DocVersionSuggestions' {
@@ -113,16 +155,7 @@ declare module '@theme/Heading' {
 
   const Heading: (Tag: HeadingType) => (props: Props) => JSX.Element;
   export default Heading;
-}
-
-declare module '@theme/hooks/useAnnouncementBar' {
-  export type useAnnouncementBarReturns = {
-    readonly isAnnouncementBarClosed: boolean;
-    readonly closeAnnouncementBar: () => void;
-  };
-
-  const useAnnouncementBar: () => useAnnouncementBarReturns;
-  export default useAnnouncementBar;
+  export const MainHeading: (props: Props) => JSX.Element;
 }
 
 declare module '@theme/hooks/useHideableNavbar' {
@@ -163,9 +196,12 @@ declare module '@theme/hooks/useScrollPosition' {
   export type ScrollPosition = {scrollX: number; scrollY: number};
 
   const useScrollPosition: (
-    effect?: (position: ScrollPosition) => void,
+    effect: (
+      position: ScrollPosition,
+      lastPosition: ScrollPosition | null,
+    ) => void,
     deps?: unknown[],
-  ) => ScrollPosition;
+  ) => void;
   export default useScrollPosition;
 }
 
@@ -201,19 +237,17 @@ declare module '@theme/hooks/useThemeContext' {
 }
 
 declare module '@theme/hooks/useTOCHighlight' {
-  export default function useTOCHighlight(
-    linkClassName: string,
-    linkActiveClassName: string,
-    topOffset: number,
-  ): void;
+  export type Params = {
+    linkClassName: string;
+    linkActiveClassName: string;
+  };
+  export default function useTOCHighlight(params: Params): void;
 }
 
 declare module '@theme/hooks/useUserPreferencesContext' {
   export type UserPreferencesContextProps = {
     tabGroupChoices: {readonly [groupId: string]: string};
     setTabGroupChoices: (groupId: string, newChoice: string) => void;
-    isAnnouncementBarClosed: boolean;
-    closeAnnouncementBar: () => void;
   };
 
   export default function useUserPreferencesContext(): UserPreferencesContextProps;
@@ -223,11 +257,12 @@ declare module '@theme/hooks/useWindowSize' {
   export const windowSizes: {
     desktop: 'desktop';
     mobile: 'mobile';
+    ssr: 'ssr';
   };
 
   export type WindowSize = keyof typeof windowSizes;
 
-  export default function useWindowSize(): WindowSize | undefined;
+  export default function useWindowSize(): WindowSize;
 }
 
 declare module '@theme/hooks/useKeyboardNavigation' {
@@ -248,6 +283,7 @@ declare module '@theme/Layout' {
     keywords?: string | string[];
     permalink?: string;
     wrapperClassName?: string;
+    pageClassName?: string;
     searchMetadatas?: {
       version?: string;
       tag?: string;
@@ -259,7 +295,9 @@ declare module '@theme/Layout' {
 }
 
 declare module '@theme/LayoutHead' {
-  import type {Props} from '@theme/Layout';
+  import type {Props as LayoutProps} from '@theme/Layout';
+
+  export type Props = Omit<LayoutProps, 'children'>;
 
   const LayoutHead: (props: Props) => JSX.Element;
   export default LayoutHead;
@@ -295,11 +333,14 @@ declare module '@theme/SkipToContent' {
 declare module '@theme/MDXComponents' {
   import type {ComponentProps} from 'react';
   import type CodeBlock from '@theme/CodeBlock';
+  import type Head from '@docusaurus/Head';
 
   export type MDXComponentsObject = {
+    readonly head: typeof Head;
     readonly code: typeof CodeBlock;
     readonly a: (props: ComponentProps<'a'>) => JSX.Element;
     readonly pre: typeof CodeBlock;
+    readonly details: (props: ComponentProps<'details'>) => JSX.Element;
     readonly h1: (props: ComponentProps<'h1'>) => JSX.Element;
     readonly h2: (props: ComponentProps<'h2'>) => JSX.Element;
     readonly h3: (props: ComponentProps<'h3'>) => JSX.Element;
@@ -318,23 +359,40 @@ declare module '@theme/Navbar' {
 }
 
 declare module '@theme/NavbarItem/DefaultNavbarItem' {
-  import type {ComponentProps, ReactNode} from 'react';
+  import type {ReactNode} from 'react';
+  import type {LinkProps} from '@docusaurus/Link';
 
-  export type NavLinkProps = {
-    activeBasePath?: string;
-    activeBaseRegex?: string;
-    to?: string;
-    exact?: boolean;
-    href?: string;
-    label?: ReactNode;
-    activeClassName?: string;
-    prependBaseUrlToHref?: string;
-    isActive?: () => boolean;
-  } & ComponentProps<'a'>;
+  export type NavLinkProps = LinkProps & {
+    readonly activeBasePath?: string;
+    readonly activeBaseRegex?: string;
+    readonly exact?: boolean;
+    readonly label?: ReactNode;
+    readonly prependBaseUrlToHref?: string;
+  };
 
   export type DesktopOrMobileNavBarItemProps = NavLinkProps & {
-    readonly items?: readonly NavLinkProps[];
+    readonly isDropdownItem?: boolean;
+    readonly className?: string;
     readonly position?: 'left' | 'right';
+  };
+
+  export type Props = DesktopOrMobileNavBarItemProps & {
+    readonly mobile?: boolean;
+  };
+
+  export const NavLink: (props: NavLinkProps) => JSX.Element;
+
+  const DefaultNavbarItem: (props: Props) => JSX.Element;
+  export default DefaultNavbarItem;
+}
+
+declare module '@theme/NavbarItem/DropdownNavbarItem' {
+  import type {NavLinkProps} from '@theme/NavbarItem/DefaultNavbarItem';
+  import type {LinkLikeNavbarItemProps} from '@theme/NavbarItem';
+
+  export type DesktopOrMobileNavBarItemProps = NavLinkProps & {
+    readonly position?: 'left' | 'right';
+    readonly items: readonly LinkLikeNavbarItemProps[];
     readonly className?: string;
   };
 
@@ -342,8 +400,8 @@ declare module '@theme/NavbarItem/DefaultNavbarItem' {
     readonly mobile?: boolean;
   };
 
-  const DefaultNavbarItem: (props: Props) => JSX.Element;
-  export default DefaultNavbarItem;
+  const DropdownNavbarItem: (props: Props) => JSX.Element;
+  export default DropdownNavbarItem;
 }
 
 declare module '@theme/NavbarItem/SearchNavbarItem' {
@@ -354,12 +412,12 @@ declare module '@theme/NavbarItem/SearchNavbarItem' {
 }
 
 declare module '@theme/NavbarItem/LocaleDropdownNavbarItem' {
-  import type {Props as DefaultNavbarItemProps} from '@theme/NavbarItem/DefaultNavbarItem';
-  import type {NavLinkProps} from '@theme/NavbarItem/DefaultNavbarItem';
+  import type {Props as DropdownNavbarItemProps} from '@theme/NavbarItem/DropdownNavbarItem';
+  import type {LinkLikeNavbarItemProps} from '@theme/NavbarItem';
 
-  export type Props = DefaultNavbarItemProps & {
-    readonly dropdownItemsBefore: NavLinkProps[];
-    readonly dropdownItemsAfter: NavLinkProps[];
+  export type Props = DropdownNavbarItemProps & {
+    readonly dropdownItemsBefore: LinkLikeNavbarItemProps[];
+    readonly dropdownItemsAfter: LinkLikeNavbarItemProps[];
   };
 
   const LocaleDropdownNavbarItem: (props: Props) => JSX.Element;
@@ -367,14 +425,14 @@ declare module '@theme/NavbarItem/LocaleDropdownNavbarItem' {
 }
 
 declare module '@theme/NavbarItem/DocsVersionDropdownNavbarItem' {
-  import type {Props as DefaultNavbarItemProps} from '@theme/NavbarItem/DefaultNavbarItem';
-  import type {NavLinkProps} from '@theme/NavbarItem/DefaultNavbarItem';
+  import type {Props as DropdownNavbarItemProps} from '@theme/NavbarItem/DropdownNavbarItem';
+  import type {LinkLikeNavbarItemProps} from '@theme/NavbarItem';
 
-  export type Props = DefaultNavbarItemProps & {
+  export type Props = DropdownNavbarItemProps & {
     readonly docsPluginId?: string;
     readonly dropdownActiveClassDisabled?: boolean;
-    readonly dropdownItemsBefore: NavLinkProps[];
-    readonly dropdownItemsAfter: NavLinkProps[];
+    readonly dropdownItemsBefore: LinkLikeNavbarItemProps[];
+    readonly dropdownItemsAfter: LinkLikeNavbarItemProps[];
   };
 
   const DocsVersionDropdownNavbarItem: (props: Props) => JSX.Element;
@@ -395,7 +453,6 @@ declare module '@theme/NavbarItem/DocNavbarItem' {
 
   export type Props = DefaultNavbarItemProps & {
     readonly docId: string;
-    readonly activeSidebarClassName: string;
     readonly docsPluginId?: string;
   };
 
@@ -404,18 +461,35 @@ declare module '@theme/NavbarItem/DocNavbarItem' {
 }
 
 declare module '@theme/NavbarItem' {
+  import type {ComponentProps} from 'react';
   import type {Props as DefaultNavbarItemProps} from '@theme/NavbarItem/DefaultNavbarItem';
-  import type {Props as DocsVersionDropdownNavbarItemProps} from '@theme/NavbarItem/DocsVersionDropdownNavbarItem';
+  import type {Props as DocNavbarItemProps} from '@theme/NavbarItem/DocNavbarItem';
   import type {Props as DocsVersionNavbarItemProps} from '@theme/NavbarItem/DocsVersionNavbarItem';
+  import type {Props as DropdownNavbarItemProps} from '@theme/NavbarItem/DropdownNavbarItem';
+  import type {Props as DocsVersionDropdownNavbarItemProps} from '@theme/NavbarItem/DocsVersionDropdownNavbarItem';
+  import type {Props as LocaleDropdownNavbarItemProps} from '@theme/NavbarItem/LocaleDropdownNavbarItem';
   import type {Props as SearchNavbarItemProps} from '@theme/NavbarItem/SearchNavbarItem';
 
-  export type Props =
-    | ({readonly type?: 'default' | undefined} & DefaultNavbarItemProps)
-    | ({
-        readonly type: 'docsVersionDropdown';
-      } & DocsVersionDropdownNavbarItemProps)
-    | ({readonly type: 'docsVersion'} & DocsVersionNavbarItemProps)
-    | ({readonly type: 'search'} & SearchNavbarItemProps);
+  export type LinkLikeNavbarItemProps =
+    | ({readonly type?: 'default'} & DefaultNavbarItemProps)
+    | ({readonly type: 'doc'} & DocNavbarItemProps)
+    | ({readonly type: 'docsVersion'} & DocsVersionNavbarItemProps);
+
+  export type Props = ComponentProps<'a'> & {
+    readonly position?: 'left' | 'right';
+  } & (
+      | LinkLikeNavbarItemProps
+      | ({readonly type?: 'dropdown'} & DropdownNavbarItemProps)
+      | ({
+          readonly type: 'docsVersionDropdown';
+        } & DocsVersionDropdownNavbarItemProps)
+      | ({readonly type: 'localeDropdown'} & LocaleDropdownNavbarItemProps)
+      | ({
+          readonly type: 'search';
+        } & SearchNavbarItemProps)
+    );
+
+  export type Types = Props['type'];
 
   const NavbarItem: (props: Props) => JSX.Element;
   export default NavbarItem;
@@ -427,8 +501,8 @@ declare module '@theme/TabItem' {
   export type Props = {
     readonly children: ReactNode;
     readonly value: string;
-    readonly hidden: boolean;
-    readonly className: string;
+    readonly hidden?: boolean;
+    readonly className?: string;
   };
 
   const TabItem: (props: Props) => JSX.Element;
@@ -467,6 +541,13 @@ declare module '@theme/ThemedImage' {
   export default ThemedImage;
 }
 
+declare module '@theme/Details' {
+  import {Details, DetailsProps} from '@docusaurus/theme-common';
+
+  export type Props = DetailsProps;
+  export default Details;
+}
+
 declare module '@theme/ThemeProvider' {
   import type {ReactNode} from 'react';
 
@@ -483,6 +564,13 @@ declare module '@theme/TOC' {
     readonly toc: readonly TOCItem[];
   };
 
+  export type TOCHeadingsProps = {
+    readonly toc: readonly TOCItem[];
+    readonly isChild?: boolean;
+  };
+
+  export const TOCHeadings: (props: TOCHeadingsProps) => JSX.Element;
+
   const TOC: (props: TOCProps) => JSX.Element;
   export default TOC;
 }
@@ -498,11 +586,26 @@ declare module '@theme/TOCInline' {
   export default TOCInline;
 }
 
-declare module '@theme/Toggle' {
-  import type {ComponentProps} from 'react';
-  import type ReactToggle from 'react-toggle';
+declare module '@theme/TOCCollapsible' {
+  import type {TOCItem} from '@docusaurus/types';
 
-  export type Props = ComponentProps<typeof ReactToggle>;
+  export type TOCCollapsibleProps = {
+    readonly className?: string;
+    readonly toc: readonly TOCItem[];
+  };
+
+  const TOCCollapsible: (props: TOCCollapsibleProps) => JSX.Element;
+  export default TOCCollapsible;
+}
+
+declare module '@theme/Toggle' {
+  import type {SyntheticEvent} from 'react';
+
+  export type Props = {
+    readonly className?: string;
+    readonly checked: boolean;
+    readonly onChange: (e: SyntheticEvent) => void;
+  };
 
   const Toggle: (props: Props) => JSX.Element;
   export default Toggle;
@@ -590,4 +693,13 @@ declare module '@theme/IconLanguage' {
 
   const IconLanguage: (props: Props) => JSX.Element;
   export default IconLanguage;
+}
+
+declare module '@theme/IconExternalLink' {
+  import type {ComponentProps} from 'react';
+
+  export type Props = ComponentProps<'svg'>;
+
+  const IconExternalLink: (props: Props) => JSX.Element;
+  export default IconExternalLink;
 }

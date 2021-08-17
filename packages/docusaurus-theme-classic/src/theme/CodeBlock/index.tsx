@@ -15,7 +15,8 @@ import type {Props} from '@theme/CodeBlock';
 import Translate, {translate} from '@docusaurus/Translate';
 
 import styles from './styles.module.css';
-import {useThemeConfig} from '@docusaurus/theme-common';
+
+import {useThemeConfig, parseCodeBlockTitle} from '@docusaurus/theme-common';
 
 const highlightLinesRangeRegex = /{([\d,-]+)}/;
 const getHighlightDirectiveRegex = (
@@ -61,7 +62,7 @@ const getHighlightDirectiveRegex = (
   return new RegExp(`^\\s*(?:${commentPattern})\\s*$`);
 };
 // select comment styles based on language
-const highlightDirectiveRegex = (lang) => {
+const highlightDirectiveRegex = (lang: string) => {
   switch (lang) {
     case 'js':
     case 'javascript':
@@ -85,12 +86,12 @@ const highlightDirectiveRegex = (lang) => {
       return getHighlightDirectiveRegex();
   }
 };
-const codeBlockTitleRegex = /(?:title=")(.*)(?:")/;
 
 export default function CodeBlock({
   children,
   className: languageClassName,
   metastring,
+  title,
 }: Props): JSX.Element {
   const {prism} = useThemeConfig();
 
@@ -107,36 +108,31 @@ export default function CodeBlock({
     setMounted(true);
   }, []);
 
+  // TODO: the title is provided by MDX as props automatically
+  // so we probably don't need to parse the metastring
+  // (note: title="xyz" => title prop still has the quotes)
+  const codeBlockTitle = parseCodeBlockTitle(metastring) || title;
+
   const button = useRef(null);
   let highlightLines: number[] = [];
-  let codeBlockTitle = '';
 
   const prismTheme = usePrismTheme();
 
   // In case interleaved Markdown (e.g. when using CodeBlock as standalone component).
-  const content = Array.isArray(children) ? children.join('') : children;
+  const content = Array.isArray(children)
+    ? children.join('')
+    : (children as string);
 
   if (metastring && highlightLinesRangeRegex.test(metastring)) {
     // Tested above
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const highlightLinesRange = metastring.match(highlightLinesRangeRegex)![1];
     highlightLines = rangeParser(highlightLinesRange).filter((n) => n > 0);
   }
 
-  if (metastring && codeBlockTitleRegex.test(metastring)) {
-    // Tested above
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, prefer-destructuring
-    codeBlockTitle = metastring.match(codeBlockTitleRegex)![1];
-  }
-
-  let language =
-    languageClassName &&
-    // Force Prism's language union type to `any` because it does not contain all available languages
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ((languageClassName.replace(/language-/, '') as Language) as any);
+  let language = languageClassName?.replace(/language-/, '') as Language;
 
   if (!language && prism.defaultLanguage) {
-    language = prism.defaultLanguage;
+    language = prism.defaultLanguage as Language;
   }
 
   // only declaration OR directive highlight can be used for a block
@@ -146,7 +142,7 @@ export default function CodeBlock({
     const directiveRegex = highlightDirectiveRegex(language);
     // go through line by line
     const lines = content.replace(/\n$/, '').split('\n');
-    let blockStart;
+    let blockStart: number;
     // loop through lines
     for (let index = 0; index < lines.length; ) {
       const line = lines[index];
@@ -170,7 +166,7 @@ export default function CodeBlock({
             break;
 
           case 'highlight-end':
-            range += `${blockStart}-${lineNumber - 1},`;
+            range += `${blockStart!}-${lineNumber - 1},`;
             break;
 
           default:
@@ -208,13 +204,12 @@ export default function CodeBlock({
             </div>
           )}
           <div className={clsx(styles.codeBlockContent, language)}>
-            <div
+            <pre
               /* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */
               tabIndex={0}
-              className={clsx(className, styles.codeBlock, 'thin-scrollbar', {
-                [styles.codeBlockWithTitle]: codeBlockTitle,
-              })}>
-              <div className={styles.codeBlockLines} style={style}>
+              className={clsx(className, styles.codeBlock, 'thin-scrollbar')}
+              style={style}>
+              <code className={styles.codeBlockLines}>
                 {tokens.map((line, i) => {
                   if (line.length === 1 && line[0].content === '') {
                     line[0].content = '\n'; // eslint-disable-line no-param-reassign
@@ -223,19 +218,19 @@ export default function CodeBlock({
                   const lineProps = getLineProps({line, key: i});
 
                   if (highlightLines.includes(i + 1)) {
-                    lineProps.className = `${lineProps.className} docusaurus-highlight-code-line`;
+                    lineProps.className += ' docusaurus-highlight-code-line';
                   }
 
                   return (
-                    <div key={i} {...lineProps}>
+                    <span key={i} {...lineProps}>
                       {line.map((token, key) => (
                         <span key={key} {...getTokenProps({token, key})} />
                       ))}
-                    </div>
+                    </span>
                   );
                 })}
-              </div>
-            </div>
+              </code>
+            </pre>
 
             <button
               ref={button}
@@ -245,7 +240,7 @@ export default function CodeBlock({
                 message: 'Copy code to clipboard',
                 description: 'The ARIA label for copy code blocks button',
               })}
-              className={clsx(styles.copyButton)}
+              className={clsx(styles.copyButton, 'clean-btn')}
               onClick={handleCopyCode}>
               {showCopied ? (
                 <Translate

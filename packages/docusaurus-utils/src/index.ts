@@ -7,9 +7,8 @@
 
 import chalk from 'chalk';
 import path from 'path';
-import matter from 'gray-matter';
 import {createHash} from 'crypto';
-import {camelCase, kebabCase, mapValues} from 'lodash';
+import {camelCase, mapValues} from 'lodash';
 import escapeStringRegexp from 'escape-string-regexp';
 import fs from 'fs-extra';
 import {URL} from 'url';
@@ -21,6 +20,23 @@ import {
 
 // @ts-expect-error: no typedefs :s
 import resolvePathnameUnsafe from 'resolve-pathname';
+
+import {posixPath as posixPathImport} from './posixPath';
+import {simpleHash, docuHash} from './hashUtils';
+
+export const posixPath = posixPathImport;
+
+export * from './codeTranslationsUtils';
+export * from './markdownParser';
+export * from './markdownLinks';
+export * from './escapePath';
+export {md5Hash, simpleHash, docuHash} from './hashUtils';
+export {
+  Globby,
+  GlobExcludeDefault,
+  createMatcher,
+  createAbsoluteFilePathMatcher,
+} from './globUtils';
 
 const fileHash = new Map();
 export async function generate(
@@ -90,22 +106,6 @@ export function encodePath(userpath: string): string {
     .join('/');
 }
 
-export function simpleHash(str: string, length: number): string {
-  return createHash('md5').update(str).digest('hex').substr(0, length);
-}
-
-/**
- * Given an input string, convert to kebab-case and append a hash.
- * Avoid str collision.
- */
-export function docuHash(str: string): string {
-  if (str === '/') {
-    return 'index';
-  }
-  const shortHash = simpleHash(str, 3);
-  return `${kebabCase(str)}-${shortHash}`;
-}
-
 /**
  * Convert first string character to the upper case.
  * E.g: docusaurus -> Docusaurus
@@ -124,20 +124,6 @@ export function genComponentName(pagePath: string): string {
   }
   const pageHash = docuHash(pagePath);
   return upperFirst(camelCase(pageHash));
-}
-
-/**
- * Convert Windows backslash paths to posix style paths.
- * E.g: endi\\lie -> endi/lie
- */
-export function posixPath(str: string): string {
-  const isExtendedLengthPath = /^\\\\\?\\/.test(str);
-  const hasNonAscii = /[^\u0000-\u0080]+/.test(str); // eslint-disable-line
-
-  if (isExtendedLengthPath || hasNonAscii) {
-    return str;
-  }
-  return str.replace(/\\/g, '/');
 }
 
 // When you want to display a path in a message/warning/error,
@@ -204,101 +190,8 @@ export function getSubFolder(file: string, refDir: string): string | null {
   return match && match[1];
 }
 
-export function createExcerpt(fileString: string): string | undefined {
-  const fileLines = fileString.trimLeft().split('\n');
-
-  /* eslint-disable no-continue */
-  // eslint-disable-next-line no-restricted-syntax
-  for (const fileLine of fileLines) {
-    // Skip empty line.
-    if (!fileLine.trim()) {
-      continue;
-    }
-
-    // Skip import/export declaration.
-    if (/^\s*?import\s.*(from.*)?;?|export\s.*{.*};?/.test(fileLine)) {
-      continue;
-    }
-
-    const cleanedLine = fileLine
-      // Remove HTML tags.
-      .replace(/<[^>]*>/g, '')
-      // Remove ATX-style headers.
-      .replace(/^\#{1,6}\s*([^#]*)\s*(\#{1,6})?/gm, '$1')
-      // Remove emphasis and strikethroughs.
-      .replace(/([\*_~]{1,3})(\S.*?\S{0,1})\1/g, '$2')
-      // Remove images.
-      .replace(/\!\[(.*?)\][\[\(].*?[\]\)]/g, '$1')
-      // Remove footnotes.
-      .replace(/\[\^.+?\](\: .*?$)?/g, '')
-      // Remove inline links.
-      .replace(/\[(.*?)\][\[\(].*?[\]\)]/g, '$1')
-      // Remove inline code.
-      .replace(/`(.+?)`/g, '$1')
-      // Remove blockquotes.
-      .replace(/^\s{0,3}>\s?/g, '')
-      // Remove admonition definition.
-      .replace(/(:{3}.*)/, '')
-      // Remove Emoji names within colons include preceding whitespace.
-      .replace(/\s?(:(::|[^:\n])+:)/g, '')
-      .trim();
-
-    if (cleanedLine) {
-      return cleanedLine;
-    }
-  }
-
-  return undefined;
-}
-
-type ParsedMarkdown = {
-  frontMatter: {
-    // Returned by gray-matter
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    [key: string]: any;
-  };
-  content: string;
-  excerpt: string | undefined;
-};
-export function parseMarkdownString(markdownString: string): ParsedMarkdown {
-  const options: Record<string, unknown> = {
-    excerpt: (file: matter.GrayMatterFile<string>): void => {
-      // Hacky way of stripping out import statements from the excerpt
-      // TODO: Find a better way to do so, possibly by compiling the Markdown content,
-      // stripping out HTML tags and obtaining the first line.
-      file.excerpt = createExcerpt(file.content);
-    },
-  };
-
-  try {
-    const {data: frontMatter, content, excerpt} = matter(
-      markdownString,
-      options,
-    );
-    return {frontMatter, content, excerpt};
-  } catch (e) {
-    throw new Error(`Error while parsing markdown front matter.
-This can happen if you use special characters like : in frontmatter values (try using "" around that value)
-${e.message}`);
-  }
-}
-
-export async function parseMarkdownFile(
-  source: string,
-): Promise<ParsedMarkdown> {
-  const markdownString = await fs.readFile(source, 'utf-8');
-  try {
-    return parseMarkdownString(markdownString);
-  } catch (e) {
-    throw new Error(
-      `Error while parsing markdown file ${source}
-${e.message}`,
-    );
-  }
-}
-
 export function normalizeUrl(rawUrls: string[]): string {
-  const urls = rawUrls;
+  const urls = [...rawUrls];
   const resultArray = [];
 
   let hasStartingSlash = false;
@@ -412,13 +305,15 @@ export function resolvePathname(to: string, from?: string): string {
 export function addLeadingSlash(str: string): string {
   return str.startsWith('/') ? str : `/${str}`;
 }
-export function addTrailingSlash(str: string): string {
-  return str.endsWith('/') ? str : `${str}/`;
-}
+
 export function addTrailingPathSeparator(str: string): string {
   return str.endsWith(path.sep) ? str : `${str}${path.sep}`;
 }
 
+// TODO deduplicate: also present in @docusaurus/utils-common
+export function addTrailingSlash(str: string): string {
+  return str.endsWith('/') ? str : `${str}/`;
+}
 export function removeTrailingSlash(str: string): string {
   return removeSuffix(str, '/');
 }
@@ -434,12 +329,6 @@ export function removePrefix(str: string, prefix: string): string {
   return str.startsWith(prefix) ? str.slice(prefix.length) : str;
 }
 
-export function getFilePathForRoutePath(routePath: string): string {
-  const fileName = path.basename(routePath);
-  const filePath = path.dirname(routePath);
-  return path.join(filePath, `${fileName}/index.html`);
-}
-
 export function getElementsAround<T extends unknown>(
   array: T[],
   aroundIndex: number,
@@ -451,7 +340,7 @@ export function getElementsAround<T extends unknown>(
   const max = array.length - 1;
   if (aroundIndex < min || aroundIndex > max) {
     throw new Error(
-      `Valid aroundIndex for array (of size ${array.length}) are between ${min} and ${max}, but you provided aroundIndex=${aroundIndex}`,
+      `Valid "aroundIndex" for array (of size ${array.length}) are between ${min} and ${max}, but you provided ${aroundIndex}.`,
     );
   }
   const previous = aroundIndex === min ? undefined : array[aroundIndex - 1];
@@ -536,7 +425,7 @@ export async function getFolderContainingFile(
   // should never happen, as the source was read from the FS anyway...
   if (!maybeFolderPath) {
     throw new Error(
-      `relativeFilePath=[${relativeFilePath}] does not exist in any of these folders: \n- ${folderPaths.join(
+      `File "${relativeFilePath}" does not exist in any of these folders:\n- ${folderPaths.join(
         '\n- ',
       )}]`,
     );
@@ -564,7 +453,7 @@ export function reportMessage(
       throw new Error(message);
     default:
       throw new Error(
-        `unexpected reportingSeverity value: ${reportingSeverity}`,
+        `Unexpected "reportingSeverity" value: ${reportingSeverity}.`,
       );
   }
 }
@@ -604,39 +493,6 @@ export function updateTranslationFileMessages(
       message: updateMessage(translation.message),
     })),
   };
-}
-
-export async function readDefaultCodeTranslationMessages({
-  dirPath,
-  locale,
-}: {
-  dirPath: string;
-  locale: string;
-}): Promise<Record<string, string>> {
-  const fileNamesToTry = [locale];
-
-  if (locale.includes('_')) {
-    const language = locale.split('_')[0];
-    if (language) {
-      fileNamesToTry.push(language);
-    }
-  }
-
-  // Return the content of the first file that match
-  // fr_FR.json => fr.json => nothing
-  // eslint-disable-next-line no-restricted-syntax
-  for (const fileName of fileNamesToTry) {
-    const filePath = path.resolve(dirPath, `${fileName}.json`);
-
-    // eslint-disable-next-line no-await-in-loop
-    if (await fs.pathExists(filePath)) {
-      // eslint-disable-next-line no-await-in-loop
-      const fileContent = await fs.readFile(filePath, 'utf8');
-      return JSON.parse(fileContent);
-    }
-  }
-
-  return {};
 }
 
 // Input: ## Some heading {#some-heading}

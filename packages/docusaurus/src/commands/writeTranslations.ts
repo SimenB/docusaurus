@@ -4,9 +4,9 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
-import {ConfigOptions} from '@docusaurus/types';
+import {ConfigOptions, InitializedPlugin} from '@docusaurus/types';
 import {loadContext, loadPluginConfigs} from '../server';
-import initPlugins, {InitPlugin} from '../server/plugins/init';
+import initPlugins from '../server/plugins/init';
 
 import {
   writePluginTranslations,
@@ -25,12 +25,15 @@ async function writePluginTranslationFiles({
   options,
 }: {
   siteDir: string;
-  plugin: InitPlugin;
+  plugin: InitializedPlugin;
   locale: string;
   options: WriteTranslationsOptions;
 }) {
   if (plugin.getTranslationFiles) {
-    const translationFiles = await plugin.getTranslationFiles();
+    const content = await plugin.loadContent?.();
+    const translationFiles = await plugin.getTranslationFiles({
+      content,
+    });
 
     await Promise.all(
       translationFiles.map(async (translationFile) => {
@@ -64,9 +67,8 @@ export default async function writeTranslations(
 
   if (!context.i18n.locales.includes(locale)) {
     throw new Error(
-      `Can't write-translation for locale that is not in the locale configuration file.
-Unknown locale=[${locale}].
-Available locales=[${context.i18n.locales.join(',')}]`,
+      `Can't write-translation for locale "${locale}" that is not in the locale configuration file.
+Available locales are: ${context.i18n.locales.join(',')}.`,
     );
   }
 

@@ -7,7 +7,13 @@ slug: /docs-introduction
 
 The docs feature provides users with a way to organize Markdown files in a hierarchical format.
 
-## Document ID
+:::info
+
+Check the [Docs Plugin API Reference documentation](./../../api/plugins/plugin-content-docs.md) for an exhaustive list of options.
+
+:::
+
+## Document ID {#document-id}
 
 Every document has a unique `id`. By default, a document `id` is the name of the document (without the extension) relative to the root docs directory.
 
@@ -49,9 +55,9 @@ It is possible to use:
 
 :::
 
-## Home page docs
+## Home page docs {#home-page-docs}
 
-If you want a document to be available at the root, and have a path like `https://v2.docusaurus.io/docs/`, you can use the slug frontmatter:
+If you want a document to be available at the root, and have a path like `https://docusaurus.io/docs/`, you can use the slug frontmatter:
 
 ```yml
 ---
@@ -61,11 +67,11 @@ slug: /
 Lorem ipsum
 ```
 
-## Docs-only mode
+## Docs-only mode {#docs-only-mode}
 
 If you only want the documentation feature, you can run your Docusaurus 2 site without a landing page and display your documentation page as the index page instead.
 
-To enable docs-only mode, set the docs plugin `routeBasePath: '/'`, and use the frontmatter `slug: /` on the document that should be the index page ([more infos](#home-page-docs)).
+To enable docs-only mode, set the docs plugin `routeBasePath: '/'`, and use the frontmatter `slug: /` on the document that should be the index page ([more info](#home-page-docs)).
 
 :::caution
 
