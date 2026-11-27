@@ -301,7 +301,7 @@ catalogs:
       version: 2.7.0
     joi:
       specifier: ^18.2.8
-      version: 18.2.8
+      version: 18.3.1
     js-yaml:
       specifier: ^5.4.1
       version: 5.4.1
@@ -458,6 +458,9 @@ catalogs:
     serve-handler:
       specifier: ^6.1.8
       version: 6.1.8
+    sharp:
+      specifier: ^0.35.1
+      version: 0.35.5
     sitemap:
       specifier: ^10.0.0
       version: 10.0.0
@@ -946,7 +949,7 @@ importers:
         specifier: 'catalog:'
         version: 0.78.0
       sharp:
-        specifier: ^0.35.1
+        specifier: 'catalog:'
         version: 0.35.5(@types/node@26.6.1)
 
   admin/test-bad-package:
@@ -1970,7 +1973,7 @@ importers:
         specifier: 'catalog:'
         version: 19.3.0(react@19.3.0)
       sharp:
-        specifier: ^0.35.1
+        specifier: 'catalog:'
         version: 0.35.5(@types/node@26.6.1)
       tslib:
         specifier: 'catalog:'
@@ -2639,7 +2642,7 @@ importers:
         version: 15.0.0
       joi:
         specifier: 'catalog:'
-        version: 18.2.8
+        version: 18.3.1
       mdast-util-directive:
         specifier: 'catalog:'
         version: 3.2.0(supports-color@10.2.2)
@@ -2733,7 +2736,7 @@ importers:
         version: link:../docusaurus-utils-common
       joi:
         specifier: 'catalog:'
-        version: 18.2.8
+        version: 18.3.1
       js-yaml:
         specifier: 'catalog:'
         version: 5.4.1
@@ -2769,7 +2772,7 @@ importers:
         specifier: workspace:*
         version: link:../docusaurus-logger
       sharp:
-        specifier: ^0.35.1
+        specifier: 'catalog:'
         version: 0.35.5(@types/node@26.6.1)
       tslib:
         specifier: 'catalog:'
@@ -10076,8 +10079,8 @@ packages:
     resolution: {integrity: sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ==}
     hasBin: true
 
-  joi@18.2.8:
-    resolution: {integrity: sha512-G2TX62h58ZHuwqetJgP2F4ualakqAmZtBYe3jWen7gxQRw5xApX6crnFtuB91WC0c3ESBnva+kGSnb3+6pIQDQ==}
+  joi@18.3.1:
+    resolution: {integrity: sha512-mV9M4Llh4va3NT90p7KBtQhoZqjs8xLX7EWYE4y/GG3yLF6REbIBEHSUb0UX1JXRht2w5tiLSsvmpYc5akiqIw==}
     engines: {node: '>= 20'}
 
   jpeg-js@0.4.4:
@@ -21671,7 +21674,7 @@ snapshots:
 
   jiti@2.7.0: {}
 
-  joi@18.2.8:
+  joi@18.3.1:
     dependencies:
       '@hapi/address': 5.1.1
       '@hapi/formula': 3.0.2
