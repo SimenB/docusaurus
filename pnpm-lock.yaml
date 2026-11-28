@@ -380,7 +380,7 @@ catalogs:
       version: 18.2.8
     js-yaml:
       specifier: ^5.4.1
-      version: 5.4.1
+      version: 5.4.2
     leven:
       specifier: ^4.1.0
       version: 4.1.0
@@ -1011,7 +1011,7 @@ importers:
         version: 2.0.4
       js-yaml:
         specifier: 'catalog:'
-        version: 5.4.1
+        version: 5.4.2
       lodash:
         specifier: 'catalog:'
         version: 4.18.1
@@ -1830,7 +1830,7 @@ importers:
         version: 1.2.0
       js-yaml:
         specifier: 'catalog:'
-        version: 5.4.1
+        version: 5.4.2
       lodash:
         specifier: 'catalog:'
         version: 4.18.1
@@ -2754,7 +2754,7 @@ importers:
         version: 2.7.0
       js-yaml:
         specifier: 'catalog:'
-        version: 5.4.1
+        version: 5.4.2
       lodash:
         specifier: 'catalog:'
         version: 4.18.1
@@ -2806,7 +2806,7 @@ importers:
         version: 18.2.8
       js-yaml:
         specifier: 'catalog:'
-        version: 5.4.1
+        version: 5.4.2
       lodash:
         specifier: 'catalog:'
         version: 4.18.1
@@ -10149,8 +10149,8 @@ packages:
     resolution: {integrity: sha512-SFNOvSJ+Dgf/9An904Yx+CgSlIPCkIpao4qo51lpee25TIRejdH3rhR4EZMGoNx3/TP3O+wzWuiTFl4sqbltzA==}
     hasBin: true
 
-  js-yaml@5.4.1:
-    resolution: {integrity: sha512-28R/k+NAjeuf7+CKlTxWZVExJGwVVLwY06DgEnOMz2gEpfNkDcD7QvyiVPT0xy0XXhU8vHsd4Ot42OOPdJG7dQ==}
+  js-yaml@5.4.2:
+    resolution: {integrity: sha512-m+aqu+LwO1O6sIopafj8HUVl5aawITwZQe/yHpMCKjaWBaA/d07B/QdMb3529REftiU+RMMHL3Vlsw3hON7vWg==}
     hasBin: true
 
   jsdoc-type-pratt-parser@9.2.1:
@@ -13770,7 +13770,7 @@ snapshots:
 
   '@11ty/gray-matter@3.0.0':
     dependencies:
-      js-yaml: 5.4.1
+      js-yaml: 5.4.2
       section-matter: 1.0.0
 
   '@adobe/css-tools@4.5.0': {}
@@ -21702,7 +21702,7 @@ snapshots:
     dependencies:
       argparse: 2.0.1
 
-  js-yaml@5.4.1:
+  js-yaml@5.4.2:
     dependencies:
       argparse: 2.0.1
 
